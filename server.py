@@ -52,8 +52,13 @@ class Server(object):
         self.socket = None
         self.client_connection = None
         self.port = port
-
         self.room = 0
+        self.map = {
+            0: {"north": 3, "east": 2, "south": None, "west": 1},
+            1: {"north": None, "east": 0, "south": None, "west": None},
+            2: {"north": None, "east": None, "south": None, "west": 0},
+            3: {"north": None, "east": None, "south": 0, "west": None}
+        }
 
     def connect(self):
         self.socket = socket.socket(
@@ -81,7 +86,12 @@ class Server(object):
 
         # TODO: YOUR CODE HERE
 
-        pass
+        return [
+        "You are in the courtyard, the breeze flowing in from above.",
+        "You are in the libaray, the wall-to-wall shelves stuffed with books.",
+        "You are in the living room, the floor-to-ceiling windows overlooking the valley.",
+        "You are in the office, the plush chair behind the desk is occupied."
+        ][room_number]
 
     def greet(self):
         """
@@ -110,7 +120,11 @@ class Server(object):
 
         # TODO: YOUR CODE HERE
 
-        pass
+        received = b''
+        while b'\n' not in received:
+            received += self.client_connection.recv(16)
+        
+        self.input_buffer = received.decode().strip()
 
     def move(self, argument):
         """
@@ -134,8 +148,12 @@ class Server(object):
         """
 
         # TODO: YOUR CODE HERE
-
-        pass
+        new_room = self.map[self.room][argument]
+        if new_room == None:
+            self.output_buffer = "There are no rooms in that direction."
+        else:
+            self.room = new_room
+            self.output_buffer = self.room_description(self.room)
 
     def say(self, argument):
         """
@@ -153,7 +171,7 @@ class Server(object):
 
         # TODO: YOUR CODE HERE
 
-        pass
+        self.output_buffer = f'You say, "{argument}"'
 
     def quit(self, argument):
         """
@@ -169,7 +187,8 @@ class Server(object):
 
         # TODO: YOUR CODE HERE
 
-        pass
+        self.done = True
+        self.output_buffer = "Goodbye!"
 
     def route(self):
         """
@@ -185,7 +204,18 @@ class Server(object):
 
         # TODO: YOUR CODE HERE
 
-        pass
+        directive = self.input_buffer.split(" ")
+
+        command = directive.pop(0)
+        arguments = " ".join(directive)
+
+        func_route = {
+            "quit": self.quit,
+            "move": self.move,
+            "say": self.say
+        }
+
+        func_route[command](arguments)
 
     def push_output(self):
         """
@@ -199,7 +229,7 @@ class Server(object):
 
         # TODO: YOUR CODE HERE
 
-        pass
+        self.client_connection.sendall(b"OK! " + self.output_buffer.encode() + b"\n")
 
     def serve(self):
         self.connect()
